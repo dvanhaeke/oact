@@ -113,12 +113,15 @@
     background:var(--surface);
     border-radius:var(--radius);
     border:1px solid var(--border);
-    padding:12px;
+    padding:0;
     display:flex;
-    gap:12px;
     align-items:stretch;
-    text-decoration:none;
-    color:inherit;
+    overflow:hidden;
+  }
+  .card-left{
+    flex:1;min-width:0;
+    display:flex;gap:12px;
+    padding:12px;
   }
   .date-block{
     flex-shrink:0;
@@ -144,7 +147,8 @@
   .ride-name{
     font-weight:700;font-size:15.5px;color:var(--ink-blue);
     text-transform:capitalize;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:170px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    min-width:0;flex-shrink:1;
   }
   .tag{
     font-size:10.5px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;
@@ -158,28 +162,34 @@
   .meta-row .item{display:flex;align-items:center;gap:4px;}
   .meta-row svg{flex-shrink:0;}
 
-  .stats{
-    flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:2px;
-    padding-left:4px;
+  .stat-line{display:flex;align-items:center;gap:8px;}
+  .stat-line .figs{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;color:var(--ink);}
+  .stat-line .figs .sep{color:var(--muted);font-weight:400;margin:0 2px;}
+  .stat-line .unit{font-size:11px;color:var(--muted);font-weight:400;font-family:'Inter',sans-serif;}
+  .no-stats-note{font-size:12.5px;color:var(--muted);}
+
+  .profile-icon{flex-shrink:0;}
+
+  .gpx-panel{
+    flex-shrink:0;width:64px;align-self:stretch;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
   }
-  .stat-num{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;color:var(--ink);line-height:1.15;}
-  .stat-unit{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;}
-  .stats .no-gpx{font-size:10.5px;color:var(--muted);text-align:right;max-width:64px;line-height:1.3;}
-
-  .profile-icon{margin-top:2px;}
-
   .gpx-btn{
-    appearance:none;border:none;cursor:pointer;
-    margin-top:6px;
-    display:inline-flex;align-items:center;gap:4px;
+    appearance:none;border:none;cursor:pointer;margin:0;padding:0;
     background:var(--ink-blue);color:#fff;
-    font-family:'Inter',sans-serif;font-weight:700;font-size:10.5px;letter-spacing:0.4px;
-    padding:4px 9px 4px 7px;border-radius:999px;
-    transition:background .15s ease, transform .1s ease;
+    font-family:'Inter',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.4px;
+    transition:background .15s ease;
   }
-  .gpx-btn:active{transform:scale(0.96);}
+  .gpx-btn:active{background:var(--ink-blue-2);}
   .gpx-btn.loading{opacity:0.6;pointer-events:none;}
-  .gpx-btn svg{flex-shrink:0;}
+
+  .gpx-panel.empty{
+    background:#E6E6E1;color:var(--muted);
+    padding:0 6px;text-align:center;
+  }
+  .gpx-panel.empty .empty-label{
+    font-size:10.5px;font-weight:600;line-height:1.25;
+  }
 
   /* ---------- Empty / loading / error ---------- */
   .skeleton-card{height:74px;border-radius:var(--radius);background:linear-gradient(90deg,#fff 25%,#f2f2ef 37%,#fff 63%);background-size:400% 100%;animation:shimmer 1.4s ease infinite;border:1px solid var(--border);}
@@ -349,7 +359,7 @@
   }
 
   function downloadSVG(){
-    return '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>';
+    return '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>';
   }
 
   function escapeAttr(s){
@@ -416,30 +426,35 @@
       metaHtml += '<span class="item">' + clockSVG() + formatTime(ride.vertrek) + '</span>';
     }
 
-    var gpxBtnHtml = '';
+    var gpxPanelHtml;
     if (match){
-      gpxBtnHtml = '<button type="button" class="gpx-btn" data-gpx-url="' + escapeAttr(match.download_url) + '" data-gpx-name="' + escapeAttr(match.name) + '">' +
-        downloadSVG() + 'GPX</button>';
+      gpxPanelHtml = '<button type="button" class="gpx-panel gpx-btn" data-gpx-url="' + escapeAttr(match.download_url) + '" data-gpx-name="' + escapeAttr(match.name) + '">' +
+        downloadSVG() + '<span>GPX</span></button>';
+    } else {
+      gpxPanelHtml = '<div class="gpx-panel empty"><span class="empty-label">binnenkort</span></div>';
     }
 
-    var statsHtml;
+    var statLineHtml;
     if (hasStats){
-      statsHtml =
-        '<div class="stat-num">' + kmHm.km + '<span class="stat-unit"> km</span></div>' +
-        '<div class="stat-num" style="font-size:13px;color:var(--muted);">' + kmHm.hm + '<span class="stat-unit"> hm</span></div>' +
-        profileSVG(isHill?'hill':'flat') +
-        gpxBtnHtml;
+      statLineHtml =
+        '<div class="stat-line">' +
+          '<span class="figs">' + kmHm.km + '<span class="unit"> km</span><span class="sep">·</span>' + kmHm.hm + '<span class="unit"> hm</span></span>' +
+          profileSVG(isHill?'hill':'flat') +
+        '</div>';
     } else {
-      statsHtml = '<div class="no-gpx">nog geen GPX</div>' + gpxBtnHtml;
+      statLineHtml = '<div class="no-stats-note">Afstand en hoogtemeters volgen</div>';
     }
 
     return '<div class="card">' +
-      '<div class="date-block"><div class="day">' + dayNum + '</div><div class="dow">' + dow + '</div></div>' +
-      '<div class="card-body">' +
-        '<div class="row-top"><span class="ride-name">' + (ride.rit||'').toLowerCase() + '</span>' + tagHtml + '</div>' +
-        '<div class="meta-row">' + metaHtml + '</div>' +
+      '<div class="card-left">' +
+        '<div class="date-block"><div class="day">' + dayNum + '</div><div class="dow">' + dow + '</div></div>' +
+        '<div class="card-body">' +
+          '<div class="row-top"><span class="ride-name">' + (ride.rit||'').toLowerCase() + '</span>' + tagHtml + '</div>' +
+          '<div class="meta-row">' + metaHtml + '</div>' +
+          statLineHtml +
+        '</div>' +
       '</div>' +
-      '<div class="stats">' + statsHtml + '</div>' +
+      gpxPanelHtml +
     '</div>';
   }
 
