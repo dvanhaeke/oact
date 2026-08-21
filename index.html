@@ -168,6 +168,19 @@
 
   .profile-icon{margin-top:2px;}
 
+  .gpx-btn{
+    appearance:none;border:none;cursor:pointer;
+    margin-top:6px;
+    display:inline-flex;align-items:center;gap:4px;
+    background:var(--ink-blue);color:#fff;
+    font-family:'Inter',sans-serif;font-weight:700;font-size:10.5px;letter-spacing:0.4px;
+    padding:4px 9px 4px 7px;border-radius:999px;
+    transition:background .15s ease, transform .1s ease;
+  }
+  .gpx-btn:active{transform:scale(0.96);}
+  .gpx-btn.loading{opacity:0.6;pointer-events:none;}
+  .gpx-btn svg{flex-shrink:0;}
+
   /* ---------- Empty / loading / error ---------- */
   .skeleton-card{height:74px;border-radius:var(--radius);background:linear-gradient(90deg,#fff 25%,#f2f2ef 37%,#fff 63%);background-size:400% 100%;animation:shimmer 1.4s ease infinite;border:1px solid var(--border);}
   @keyframes shimmer{0%{background-position:100% 0;}100%{background-position:0 0;}}
@@ -335,6 +348,53 @@
     return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';
   }
 
+  function downloadSVG(){
+    return '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>';
+  }
+
+  function escapeAttr(s){
+    return (s||"").toString()
+      .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+      .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // Forces a real download instead of the browser navigating to and
+  // rendering the raw GPX/XML inline. Cross-origin `download` attributes
+  // are ignored by most browsers, so we fetch the file ourselves and
+  // trigger the save from a same-origin blob URL instead.
+  function downloadGpx(url, filename, btn){
+    btn.classList.add('loading');
+    fetch(url)
+      .then(function(r){
+        if (!r.ok) throw new Error('download failed');
+        return r.blob();
+      })
+      .then(function(blob){
+        var blobUrl = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function(){ URL.revokeObjectURL(blobUrl); }, 4000);
+      })
+      .catch(function(){
+        // fallback: open in a new tab so the user can still save it manually
+        window.open(url, '_blank', 'noopener');
+      })
+      .finally(function(){
+        btn.classList.remove('loading');
+      });
+  }
+
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest ? e.target.closest('.gpx-btn') : null;
+    if (!btn) return;
+    e.preventDefault();
+    downloadGpx(btn.getAttribute('data-gpx-url'), btn.getAttribute('data-gpx-name'), btn);
+  });
+
   function renderCard(ride){
     var d = ride.date;
     var dayNum = d ? d.getDate() : "?";
@@ -356,27 +416,31 @@
       metaHtml += '<span class="item">' + clockSVG() + formatTime(ride.vertrek) + '</span>';
     }
 
+    var gpxBtnHtml = '';
+    if (match){
+      gpxBtnHtml = '<button type="button" class="gpx-btn" data-gpx-url="' + escapeAttr(match.download_url) + '" data-gpx-name="' + escapeAttr(match.name) + '">' +
+        downloadSVG() + 'GPX</button>';
+    }
+
     var statsHtml;
     if (hasStats){
       statsHtml =
         '<div class="stat-num">' + kmHm.km + '<span class="stat-unit"> km</span></div>' +
         '<div class="stat-num" style="font-size:13px;color:var(--muted);">' + kmHm.hm + '<span class="stat-unit"> hm</span></div>' +
-        profileSVG(isHill?'hill':'flat');
+        profileSVG(isHill?'hill':'flat') +
+        gpxBtnHtml;
     } else {
-      statsHtml = '<div class="no-gpx">nog geen GPX</div>';
+      statsHtml = '<div class="no-gpx">nog geen GPX</div>' + gpxBtnHtml;
     }
 
-    var tag = match ? 'a' : 'div';
-    var hrefAttr = match ? ' href="' + match.download_url + '" target="_blank" rel="noopener"' : '';
-
-    return '<' + tag + ' class="card"' + hrefAttr + '>' +
+    return '<div class="card">' +
       '<div class="date-block"><div class="day">' + dayNum + '</div><div class="dow">' + dow + '</div></div>' +
       '<div class="card-body">' +
         '<div class="row-top"><span class="ride-name">' + (ride.rit||'').toLowerCase() + '</span>' + tagHtml + '</div>' +
         '<div class="meta-row">' + metaHtml + '</div>' +
       '</div>' +
       '<div class="stats">' + statsHtml + '</div>' +
-    '</' + tag + '>';
+    '</div>';
   }
 
   function render(rides, gpxFiles){
