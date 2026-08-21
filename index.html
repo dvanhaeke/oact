@@ -260,8 +260,8 @@
   var CACHE_KEY = "oact-calendar-cache-v1";
 
   var MONTHS_NL = ["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"];
+  var MONTHS_NL_SHORT = ["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
   var MONTHS_MAP = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
-  var DOW_NL = ["ZO","MA","DI","WO","DO","VR","ZA"];
 
   var contentEl = document.getElementById('content');
   var statusText = document.getElementById('statusText');
@@ -408,7 +408,7 @@
   function renderCard(ride){
     var d = ride.date;
     var dayNum = d ? d.getDate() : "?";
-    var dow = d ? DOW_NL[d.getDay()] : "";
+    var dow = d ? MONTHS_NL_SHORT[d.getMonth()].toUpperCase() : "";
     var match = ride.gpxMatch;
     var kmHm = match ? extractKmHm(match.name) : {km:null,hm:null};
     var hasStats = kmHm.km !== null && kmHm.hm !== null;
