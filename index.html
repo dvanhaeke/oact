@@ -117,6 +117,7 @@
     display:flex;
     align-items:stretch;
     overflow:hidden;
+    scroll-margin-top:104px;
   }
   .card-left{
     flex:1;min-width:0;
@@ -445,7 +446,9 @@
       statLineHtml = '<div class="no-stats-note">Afstand en hoogtemeters volgen</div>';
     }
 
-    return '<div class="card">' +
+    var tsAttr = d ? ' data-ts="' + d.getTime() + '"' : '';
+
+    return '<div class="card"' + tsAttr + '>' +
       '<div class="card-left">' +
         '<div class="date-block"><div class="day">' + dayNum + '</div><div class="dow">' + dow + '</div></div>' +
         '<div class="card-body">' +
@@ -488,6 +491,30 @@
     });
     html += '</div>';
     contentEl.innerHTML = html;
+    scrollToNextRide();
+  }
+
+  var hasAutoScrolled = false;
+
+  function scrollToNextRide(){
+    if (hasAutoScrolled) return;
+    hasAutoScrolled = true;
+
+    var todayStart = new Date();
+    todayStart.setHours(0,0,0,0);
+    var todayTs = todayStart.getTime();
+
+    var cards = contentEl.querySelectorAll('.card[data-ts]');
+    var target = null;
+    for (var i=0;i<cards.length;i++){
+      var ts = parseInt(cards[i].getAttribute('data-ts'),10);
+      if (ts >= todayTs){ target = cards[i]; break; }
+    }
+    if (!target) return; // season finished or no dated rides — stay at top
+
+    requestAnimationFrame(function(){
+      target.scrollIntoView({behavior:'smooth', block:'start'});
+    });
   }
 
   function setStatus(state, ts){
